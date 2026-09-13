@@ -6,7 +6,6 @@ function App() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
   const [selectedImage, setSelectedImage] = useState(null)
 
   async function fetchData(pageNum) {
@@ -25,6 +24,17 @@ function App() {
     fetchData(page)
   }, [page])
 
+  // Close modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedImage(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   function previousPage() {
     if (page > 1) {
       setPage(prev => prev - 1)
@@ -37,51 +47,20 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Filter photos by author search
-  const filteredData = data.filter(item =>
-    item.author.toLowerCase().includes(search.toLowerCase())
-  )
-
-  // Dashboard calculations
-  const uniqueAuthors = new Set(data.map(item => item.author)).size
-
   return (
     <div className='app-container'>
-      {/* Dashboard Top Header */}
-      <header className='dashboard-header'>
-        <div className='header-top'>
-          <div className='brand'>
-            <h1>Gallery Dashboard</h1>
-            <p>Curated photography collection</p>
+      {/* Editorial Exhibition Header */}
+      <header className='gallery-header'>
+        <div className='header-inner'>
+          <div className='brand-section'>
+            <div className='brand-tagline'>CURATED VISUAL ARCHIVE</div>
+            <h1 className='brand-title'>ATELIER</h1>
           </div>
-
-          <div className='search-box'>
-            <input
-              type='text'
-              placeholder='Search photographer...'
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className='search-input'
-            />
-            {search && (
-              <button className='clear-btn' onClick={() => setSearch('')}>✕</button>
-            )}
-          </div>
-        </div>
-
-        {/* Dashboard Metric Cards */}
-        <div className='dashboard-stats'>
-          <div className='stat-card'>
-            <span className='stat-title'>Current Page</span>
-            <span className='stat-num'>#{page}</span>
-          </div>
-          <div className='stat-card'>
-            <span className='stat-title'>Photos Displayed</span>
-            <span className='stat-num'>{filteredData.length}</span>
-          </div>
-          <div className='stat-card'>
-            <span className='stat-title'>Photographers</span>
-            <span className='stat-num'>{uniqueAuthors}</span>
+          <div className='header-meta'>
+            <div className='meta-pill'>
+              <span>COLLECTION 0{page}</span>
+            </div>
+            <span className='meta-count'>{data.length} WORKS</span>
           </div>
         </div>
       </header>
@@ -90,96 +69,123 @@ function App() {
       <main className='main-content'>
         {loading ? (
           <div className='loading-box'>
-            <div className='spinner'></div>
-            <p>Loading photos...</p>
-          </div>
-        ) : filteredData.length > 0 ? (
-          <div className='gallery-container'>
-            {filteredData.map((item) => (
-              <div 
-                key={item.id} 
-                className='image-card'
-                onClick={() => setSelectedImage(item)}
-              >
-                <div className='img-wrapper'>
-                  <img 
-                    src={`https://picsum.photos/id/${item.id}/600/400`} 
-                    alt={`By ${item.author}`} 
-                    loading='lazy'
-                  />
-                  <div className='img-overlay'>
-                    <span>Click to preview</span>
-                  </div>
-                </div>
-                <div className='card-info'>
-                  <h3>{item.author}</h3>
-                  <div className='card-meta'>
-                    <span className='dim-tag'>{item.width} × {item.height}</span>
-                    <a 
-                      href={item.url} 
-                      target='_blank' 
-                      rel='noopener noreferrer'
-                      onClick={(e) => e.stopPropagation()}
-                      className='source-link'
-                    >
-                      Source ↗
-                    </a>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <div className='minimal-loader'></div>
+            <p className='loading-text'>CURATING COLLECTION...</p>
           </div>
         ) : (
-          <div className='no-data'>
-            <p>No photos found matching &ldquo;{search}&rdquo;</p>
-            <button className='reset-btn' onClick={() => setSearch('')}>Clear Search</button>
+          <div className='gallery-grid'>
+            {data.map((item, index) => {
+              const photoIndex = String((page - 1) * 12 + index + 1).padStart(3, '0')
+              return (
+                <article 
+                  key={item.id} 
+                  className='photo-card'
+                  onClick={() => setSelectedImage(item)}
+                >
+                  <div className='image-frame'>
+                    <img 
+                      src={`https://picsum.photos/id/${item.id}/700/500`} 
+                      alt={`Photograph by ${item.author}`} 
+                      loading='lazy'
+                    />
+                    <div className='frame-overlay'>
+                      <span className='preview-prompt'>EXPAND VIEW</span>
+                    </div>
+                    <span className='index-stamp'>{photoIndex}</span>
+                  </div>
+
+                  <div className='card-caption'>
+                    <div className='author-details'>
+                      <span className='author-label'>ARTIST</span>
+                      <h3 className='author-name'>{item.author}</h3>
+                    </div>
+                    <div className='photo-specs'>
+                      <span className='spec-badge'>{item.width} × {item.height}</span>
+                      <a 
+                        href={item.url} 
+                        target='_blank' 
+                        rel='noopener noreferrer'
+                        onClick={(e) => e.stopPropagation()}
+                        className='origin-link'
+                        title='View on Unsplash'
+                      >
+                        Source ↗
+                      </a>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
           </div>
         )}
 
-        {/* Clean Pagination (Outside the Grid) */}
-        <div className='pagination'>
-          <button 
-            onClick={previousPage} 
-            disabled={page <= 1 || loading}
-            className='page-btn'
-          >
-            ← Previous
-          </button>
-          <span className='page-num'>Page {page}</span>
-          <button 
-            onClick={nextPage} 
-            disabled={loading}
-            className='page-btn'
-          >
-            Next →
-          </button>
-        </div>
+        {/* Minimalist Pagination */}
+        {!loading && (
+          <nav className='pagination-bar' aria-label='Gallery pagination'>
+            <button 
+              onClick={previousPage} 
+              disabled={page <= 1 || loading}
+              className='nav-btn prev-btn'
+            >
+              ← PREVIOUS
+            </button>
+            <div className='page-indicator'>
+              <span className='page-current'>{String(page).padStart(2, '0')}</span>
+              <span className='page-divider'>/</span>
+              <span className='page-total'>ARCHIVE</span>
+            </div>
+            <button 
+              onClick={nextPage} 
+              disabled={loading}
+              className='nav-btn next-btn'
+            >
+              NEXT →
+            </button>
+          </nav>
+        )}
       </main>
 
-      {/* Lightbox Modal */}
+      {/* Footer */}
+      <footer className='gallery-footer'>
+        <p>© ATELIER VISUAL ARCHIVE • POWERED BY LOREM PICSUM</p>
+      </footer>
+
+      {/* Lightbox Cinema Modal */}
       {selectedImage && (
-        <div className='modal-backdrop' onClick={() => setSelectedImage(null)}>
-          <div className='modal-box' onClick={(e) => e.stopPropagation()}>
-            <button className='modal-close' onClick={() => setSelectedImage(null)}>✕</button>
-            <div className='modal-img-container'>
+        <div 
+          className='modal-backdrop' 
+          onClick={() => setSelectedImage(null)}
+          role='dialog'
+          aria-modal='true'
+        >
+          <div className='modal-stage' onClick={(e) => e.stopPropagation()}>
+            <button 
+              className='close-btn' 
+              onClick={() => setSelectedImage(null)}
+              aria-label='Close modal'
+            >
+              ✕
+            </button>
+            <div className='modal-photo-wrapper'>
               <img 
-                src={`https://picsum.photos/id/${selectedImage.id}/1200/800`} 
-                alt={selectedImage.author} 
+                src={`https://picsum.photos/id/${selectedImage.id}/1400/950`} 
+                alt={`By ${selectedImage.author}`} 
               />
             </div>
-            <div className='modal-details'>
-              <div>
+            <div className='modal-info-strip'>
+              <div className='modal-artist-info'>
+                <span className='modal-tag'>PHOTOGRAPHER</span>
                 <h2>{selectedImage.author}</h2>
-                <p>Original Resolution: {selectedImage.width} × {selectedImage.height} px</p>
+                <span className='modal-resolution'>{selectedImage.width} × {selectedImage.height} PX • ORIGINAL SPEC</span>
               </div>
               <div className='modal-actions'>
                 <a 
                   href={selectedImage.download_url} 
                   target='_blank' 
                   rel='noopener noreferrer'
-                  className='btn-download'
+                  className='download-action-btn'
                 >
-                  Download Photo
+                  DOWNLOAD ORIGINAL
                 </a>
               </div>
             </div>
